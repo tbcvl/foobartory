@@ -27,10 +27,10 @@
 
 
 import asyncio
-import uuid
 import logging
 import sys
 import random
+import uuid
 
 # logging configuration to stdout
 logger = logging.getLogger(__name__)
@@ -41,10 +41,12 @@ formatter = logging.Formatter('%(levelname)s - %(message)s')
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 
-SECOND_MULTIPLIER = 1/10
+SECOND_MULTIPLIER = 1/100
 FOO_LIST = []
 BAR_LIST = []
 FOO_BAR_LIST = []
+MY_EUROS = 0
+ROBOT_NUMBER = 0
 
 
 class Foo():
@@ -64,65 +66,102 @@ class Bar():
 class Robot():
     number: str
 
-    def __init__(self, value):
-        self.number = value
-        logger.info(f'robot {self.number} created')
+    def __init__(self):
+        global ROBOT_NUMBER
+        ROBOT_NUMBER += 1
+        self.number = ROBOT_NUMBER
+        logger.info(f'robot #{self.number} created')
+        if ROBOT_NUMBER == 30:
+            logger.info(f'SUCCESS! 30 robots created!')
+            sys.exit()
 
     async def move(self):
-        logger.info(f'robot {self.number} moving')
+        logger.debug(f'robot #{self.number} moving')
         await asyncio.sleep(5 * SECOND_MULTIPLIER)
 
     async def build_foo(self):
-        logger.info(f'robot {self.number} creating Foo')
         await asyncio.sleep(1 * SECOND_MULTIPLIER)
         foo = Foo()
         FOO_LIST.append(foo)
-        logger.info(f'robot {self.number} created {foo}, {len(FOO_LIST)} foos now')
+        logger.info(f'robot #{self.number} created {foo}, {len(FOO_LIST)} foos now')
 
     async def build_bar(self):
-        logger.info(f'robot {self.number} creating Bar')
         random_sleep_time = max(0.5, random.random() * 2)
         await asyncio.sleep(random_sleep_time * SECOND_MULTIPLIER)
         bar = Bar()
         BAR_LIST.append(bar)
-        logger.info(f'robot {self.number} created {bar}, {len(BAR_LIST)} bars now')
+        logger.info(f'robot #{self.number} created {bar}, {len(BAR_LIST)} bars now')
 
     async def assemble_foo_bar(self):
-        logger.info(f'robot {self.number} trying to assemble foo and bar')
+        logger.debug(f'robot #{self.number} trying to assemble foo and bar')
         await asyncio.sleep(2 * SECOND_MULTIPLIER)
         # take foo and bar from the lists
         try:
             foo = FOO_LIST.pop(0)
         except IndexError:
-            logger.warning(f'robot {self.number} failed to assemble, no foo available')
+            logger.warning(f'robot #{self.number} failed to assemble, no foo available')
             return
         try:
             bar = FOO_LIST.pop(0)
         except IndexError:
-            logger.warning(f'robot {self.number} failed to assemble, no bar available')
+            logger.warning(f'robot #{self.number} failed to assemble, no bar available')
             return
         # 60% of success
         if random.random() > 0.6:
-            logger.warning(f'robot {self.number} failed to assemble, {foo} is lost, {bar} is reused')
+            logger.warning(f'robot #{self.number} failed to assemble, {foo} is lost, {bar} is reused')
             BAR_LIST.append(bar)
             return
         # let's assemble
         FOO_BAR_LIST.append((foo, bar))
-        logger.info(f'robot {self.number} succeeded to assemble {foo} and {bar}, {len(FOO_BAR_LIST)} foobars now')
+        logger.info(f'robot #{self.number} succeeded to assemble {foo} and {bar}, {len(FOO_BAR_LIST)} foobars now')
+
+    async def sell_foobars(self):
+        # Is there enough foobars to be sold ?
+        if len(FOO_BAR_LIST) == 0:
+            logger.warning(f'0 foobars, can not sell')
+            return
+        # sell a maximum of 5 foobars
+        for _ in range(5):
+            try:
+                (foo, bar) = FOO_BAR_LIST.pop(0)
+                global MY_EUROS
+                MY_EUROS += 1
+                logger.info(f'{foo} and {bar} sold, we have {MY_EUROS} euros now')
+            except IndexError:
+                pass
+
+    async def buy_new_robot(self):
+        # Is there 3 euros and 6 foos ?
+        global MY_EUROS
+        global FOO_LIST
+        if MY_EUROS < 3 or len(FOO_LIST) < 6:
+            logger.warning('not enough euros and foos, can not create new robot')
+            return
+        FOO_LIST = FOO_LIST[6:]
+        MY_EUROS -= 3
+        robot = Robot()
+        loop = asyncio.get_event_loop()
+        loop.create_task(robot.start())
 
     async def start(self):
         await self.move()
         # make random activity
-        func = random.choice([self.build_foo, self.build_bar, self.assemble_foo_bar])
+        func = random.choice([
+            self.build_foo,
+            self.build_bar,
+            self.assemble_foo_bar,
+            self.sell_foobars,
+            self.buy_new_robot
+        ])
         await func()
         # start again
         await self.start()
 
 
 def main():
-    logger.info('I start')
-    robot1 = Robot(1)
-    robot2 = Robot(2)
+    logger.info('Factory starts')
+    robot1 = Robot()
+    robot2 = Robot()
     loop = asyncio.get_event_loop()
     loop.create_task(robot1.start())
     loop.create_task(robot2.start())
