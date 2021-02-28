@@ -118,7 +118,7 @@ class Robot:
             logger.warning(f"robot #{self.number} failed to assemble, no foo available")
             return
         try:
-            bar = self.factory.foo_list.pop(0)
+            bar = self.factory.bar_list.pop(0)
         except IndexError:
             logger.warning(f"robot #{self.number} failed to assemble, no bar available")
             return
@@ -146,13 +146,14 @@ class Robot:
         for _ in range(5):
             try:
                 (foo, bar) = self.factory.foo_bar_list.pop(0)
+            except IndexError:
+                pass
+            else:
                 self.factory.euros += 1
                 logger.info(
                     f"robot #{self.number} sold {foo} and {bar}, "
                     f"we have {self.factory.euros} euros now"
                 )
-            except IndexError:
-                pass
 
     async def buy_new_robot(self):
         # Is there 3 euros and 6 foos ?
