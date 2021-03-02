@@ -26,6 +26,13 @@ you can change the var `second_multiplier` in the code:
      foo_list = []
 ```
 
+## To Do / To enhance:
+Give more control to the user with the command line options:
+- parameter to control the `second_multiplier`, e.g. 1, 1/10, 1/100.
+- parameter to control the output verbosity, e.g. none, everything (like today), or only robot and euros creation.
+- parameter to display the time spent.
+- parameter to control where is out the output, in file or console.
+
 ## Example of output, to understand what the program does
 ```
 INFO - Factory starts
